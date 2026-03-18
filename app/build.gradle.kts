@@ -1,3 +1,6 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -17,6 +20,26 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // --- LOCAL.PROPERTIES LOGIC ---
+        val properties = Properties()
+        val localPropertiesFile = project.rootProject.file("local.properties")
+
+        if (localPropertiesFile.exists()) {
+            properties.load(FileInputStream(localPropertiesFile))
+        }
+
+        buildConfigField(
+            "String",
+            "CHECKOUT_PUBLIC_KEY",
+            "\"${properties.getProperty("CHECKOUT_PUBLIC_KEY", "missing_key")}\""
+        )
+        // 3. Processing Channel ID
+        buildConfigField(
+            "String",
+            "CHECKOUT_PROCESSING_CHANNEL_ID",
+            "\"${properties.getProperty("CHECKOUT_PROCESSING_CHANNEL_ID", "missing_channel_id")}\""
+        )
     }
 
     buildTypes {
@@ -28,16 +51,20 @@ android {
             )
         }
     }
+
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
+
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
 dependencies {
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -46,6 +73,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -53,6 +81,9 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+
     // Checkout.com Flow SDK
-    implementation("com.checkout:checkout-android-components:1.3.0")
+    implementation(libs.checkout.android.components)
+    implementation(libs.checkout.wallet) // Use this instead of the old google-pay lib
+
 }

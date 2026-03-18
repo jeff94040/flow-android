@@ -16,38 +16,86 @@ import com.checkout.components.interfaces.Environment
 import com.checkout.components.interfaces.component.ComponentCallback
 import com.checkout.components.interfaces.model.ComponentName
 import com.checkout.components.interfaces.model.PaymentSessionResponse
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import org.json.JSONObject
+import java.net.HttpURLConnection
+import java.net.URL
+
+// --- MINIMAL ADDITION 1: Append new imports (DO NOT touch existing ones) ---
+import com.checkout.components.interfaces.model.PaymentMethodName
+import com.checkout.components.wallet.wrapper.GooglePayFlowCoordinator
+
+// ---------------------------------------------------------------------------
 
 class MainActivity : ComponentActivity() {
+
+    // --- MINIMAL ADDITION 2: A simple callback trick to avoid importing the broken CheckoutComponents class
+    private var checkoutResultHandler: ((Int, String) -> Unit)? = null
+    // ----------------------------------------------------------------------------------------------------
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        // 1. Create the SDK Configuration
-        // NOTE: Placeholder values below must be replaced with real data from your server
-        val configuration = CheckoutComponentConfiguration(
-            context = this,
-            publicKey = "pk_sbox_wzfdx5reewvfgcdgyky4pdgbemc", // Found in Checkout.com Dashboard
-            environment = Environment.SANDBOX,
-            paymentSession = PaymentSessionResponse(
-                id = "ps_380RZxity4YL7wdUgnqheBKWJST",           // Unique ID from your server
-                paymentSessionToken = "YmFzZTY0:eyJpZCI6InBzXzM4MFJaeGl0eTRZTDd3ZFVnbnFoZUJLV0pTVCIsImVudGl0eV9pZCI6ImVudF9wbngzem5vdW5pcGVyZGZiZWZqa3ViamdvdSIsImV4cGVyaW1lbnRzIjp7fSwicHJvY2Vzc2luZ19jaGFubmVsX2lkIjoicGNfaTd1M2hsaWgybnplN21xNmRpZ3YzcGVtdXEiLCJhbW91bnQiOjEwMCwibG9jYWxlIjoiZW4tR0IiLCJjdXJyZW5jeSI6IlVTRCIsInBheW1lbnRfbWV0aG9kcyI6W3sidHlwZSI6InJlbWVtYmVyX21lIiwiY2FyZF9zY2hlbWVzIjpbIlZpc2EiLCJNYXN0ZXJjYXJkIiwiQW1leCIsIkpDQiIsIkRpbmVycyBDbHViIiwiRGlzY292ZXIiLCJDaGluYSBVbmlvbiBQYXkiXSwiYmlsbGluZ19hZGRyZXNzIjp7ImNvdW50cnkiOiJVUyJ9LCJkaXNwbGF5X21vZGUiOiJjaGVja2JveCJ9LHsidHlwZSI6ImNhcmQiLCJjYXJkX3NjaGVtZXMiOlsiVmlzYSIsIk1hc3RlcmNhcmQiLCJBbWV4IiwiSkNCIiwiRGluZXJzIENsdWIiLCJEaXNjb3ZlciIsIkNoaW5hIFVuaW9uIFBheSJdLCJzY2hlbWVfY2hvaWNlX2VuYWJsZWQiOmZhbHNlLCJzdG9yZV9wYXltZW50X2RldGFpbHMiOiJkaXNhYmxlZCIsImJpbGxpbmdfYWRkcmVzcyI6eyJjb3VudHJ5IjoiVVMifX0seyJ0eXBlIjoiYXBwbGVwYXkiLCJkaXNwbGF5X25hbWUiOiJKZWZmJ3MgVGVzdCBBY2NvdW50IiwiY291bnRyeV9jb2RlIjoiVVMiLCJjdXJyZW5jeV9jb2RlIjoiVVNEIiwibWVyY2hhbnRfY2FwYWJpbGl0aWVzIjpbInN1cHBvcnRzM0RTIl0sInN1cHBvcnRlZF9uZXR3b3JrcyI6WyJ2aXNhIiwibWFzdGVyQ2FyZCIsImFtZXgiLCJqY2IiLCJkaXNjb3ZlciIsImNoaW5hVW5pb25QYXkiXSwidG90YWwiOnsibGFiZWwiOiJKZWZmJ3MgVGVzdCBBY2NvdW50IiwidHlwZSI6ImZpbmFsIiwiYW1vdW50IjoiMSJ9fSx7InR5cGUiOiJnb29nbGVwYXkiLCJtZXJjaGFudCI6eyJpZCI6IjA4MTEzMDg5Mzg2MjY4ODQ5OTgyIiwibmFtZSI6IkplZmYncyBUZXN0IEFjY291bnQiLCJvcmlnaW4iOiJodHRwczovL2Nrby5qZWZmOTQwNDAuY29tIn0sInRyYW5zYWN0aW9uX2luZm8iOnsidG90YWxfcHJpY2Vfc3RhdHVzIjoiRklOQUwiLCJ0b3RhbF9wcmljZSI6IjEiLCJjb3VudHJ5X2NvZGUiOiJVUyIsImN1cnJlbmN5X2NvZGUiOiJVU0QifSwiY2FyZF9wYXJhbWV0ZXJzIjp7ImFsbG93ZWRfYXV0aF9tZXRob2RzIjpbIlBBTl9PTkxZIiwiQ1JZUFRPR1JBTV8zRFMiXSwiYWxsb3dlZF9jYXJkX25ldHdvcmtzIjpbIlZJU0EiLCJNQVNURVJDQVJEIiwiQU1FWCIsIkpDQiIsIkRJU0NPVkVSIl19fV0sImZlYXR1cmVfZmxhZ3MiOlsiYW5hbHl0aWNzX29ic2VydmFiaWxpdHlfZW5hYmxlZCIsImdldF93aXRoX3B1YmxpY19rZXlfZW5hYmxlZCIsImxvZ3Nfb2JzZXJ2YWJpbGl0eV9lbmFibGVkIiwicmlza19qc19lbmFibGVkIiwidXNlX2JpbGxpbmdfYWRkcmVzc19mcm9tX2NvbmZpZ19mb3JfdG9rZW5pemF0aW9uIiwidXNlX2RldmljZV9hcGlfZm9yX29ic2VydmFiaWxpdHkiLCJ1c2Vfcmlza2pzX3YyIiwidXNlX3VybF9oYXNoX2Zvcl9pZnJhbWVfcHJvcHMiXSwicmlzayI6eyJlbmFibGVkIjpmYWxzZX0sIm1lcmNoYW50X25hbWUiOiJKZWZmJ3MgVGVzdCBBY2NvdW50IiwicGF5bWVudF9zZXNzaW9uX3NlY3JldCI6InBzc19lZDZmYjA4NC0wZjQ0LTRjYjAtOTAyNy04MWUxNzFiMDY1YzYiLCJpbnRlZ3JhdGlvbl9kb21haW4iOiJkZXZpY2VzLmFwaS5zYW5kYm94LmNoZWNrb3V0LmNvbSJ9",
-                paymentSessionSecret = "pss_ed6fb084-0f44-4cb0-9027-81e171b065c6"
-            ),
-            componentCallback = ComponentCallback(
-                onSuccess = { component, paymentId ->
-                    Log.d("CheckoutFlow", "Payment Successful: $paymentId")
-                    // TODO: Notify your server to finalize the order
-                },
-                onError = { component, error ->
-                    Log.e("CheckoutFlow", "Payment Error: ${error.message}")
-                }
-            )
-        )
 
         // 2. Initialize and display the Flow Component
         lifecycleScope.launch {
             try {
+
+                // 1. Fetch the session from your server
+                val responseString = withContext(Dispatchers.IO) {
+                    fetchPaymentSession()
+                }
+
+                Log.d("CheckoutFlow", "Server Response: $responseString")
+
+                // 2. Parse the JSON response
+                val jsonResponse = JSONObject(responseString)
+                val fetchedId = jsonResponse.getString("id")
+                val fetchedSecret = jsonResponse.getString("payment_session_secret")
+
+                // --- MINIMAL ADDITION 3: Setup Coordinator ---
+                val googlePayCoordinator = GooglePayFlowCoordinator(
+                    context = this@MainActivity,
+                    handleActivityResult = { resultCode, data ->
+                        checkoutResultHandler?.invoke(resultCode, data)
+                    }
+                )
+                val flowCoordinators = mapOf(PaymentMethodName.GooglePay to googlePayCoordinator)
+                // ---------------------------------------------
+
+                // 3. Configure the SDK
+                val configuration = CheckoutComponentConfiguration(
+                    context = this@MainActivity,
+                    publicKey = BuildConfig.CHECKOUT_PUBLIC_KEY, // Found in Checkout.com Dashboard
+                    environment = Environment.SANDBOX,
+                    paymentSession = PaymentSessionResponse(
+                        id = fetchedId,
+                        secret = fetchedSecret
+                    ),
+                    // --- MINIMAL ADDITION 4: Pass coordinators map ---
+                    flowCoordinators = flowCoordinators,
+                    // -------------------------------------------------
+                    componentCallback = ComponentCallback(
+                        onSuccess = { component, paymentId ->
+                            // Logs the full component object and paymentId payload
+                            Log.d("CheckoutFlow", "Payment Successful! Component: $component, PaymentResult: $paymentId")
+                            // TODO: Notify your server to finalize the order
+                        },
+                        onError = { component, error ->
+                            // Logs the full component, the string representation of the error, and prints the stack trace
+                            Log.e("CheckoutFlow", "Payment Error! Component: $component, Error Payload: $error", error)
+                        }
+                    )
+                )
+
                 // Instantiate the factory
                 val checkoutComponents = CheckoutComponentsFactory(config = configuration).create()
+
+                // --- MINIMAL ADDITION 5: Link the result handler to your factory instance ---
+                this@MainActivity.checkoutResultHandler = { resultCode, data ->
+                    checkoutComponents.handleActivityResult(resultCode, data)
+                }
+                // ----------------------------------------------------------------------------
 
                 // Create the "Flow" component which manages all payment methods
                 val flow = checkoutComponents.create(ComponentName.Flow)
@@ -66,6 +114,72 @@ class MainActivity : ComponentActivity() {
             } catch (e: Exception) {
                 Log.e("CheckoutFlow", "Initialization failed", e)
             }
+        }
+    }
+    // Function to make the HTTP POST request to your backend
+    private fun fetchPaymentSession(): String {
+
+        val url = URL("https://cko.jeff94040.com/create-payment-session")
+        val connection = url.openConnection() as HttpURLConnection
+
+        connection.requestMethod = "POST"
+        connection.setRequestProperty("Content-Type", "application/json")
+        connection.setRequestProperty("Accept", "application/json")
+        connection.setRequestProperty("Processing-Channel-Id", BuildConfig.CHECKOUT_PROCESSING_CHANNEL_ID)
+        connection.setRequestProperty("Authorization", "sk_sbox_***************************")
+        connection.doOutput = true
+
+        val jsonPayload = """
+        {
+          "amount": 100,
+          "currency": "USD",
+          "reference": "FLOW-ANDROID-123456",
+          "payment_type": "Regular",
+          "display_name": "Jeff US",
+          "items": [
+            {
+              "name": "widget",
+              "unit_price": 100,
+              "quantity": 1
+            }
+          ],
+          "billing": {
+            "address": {
+              "country": "US"
+            }
+          },
+          "customer": {
+            "name": "John Doe",
+            "email": "johndoe@yahoo.com"
+          },
+          "success_url": "https://cko.jeff94040.com/success",
+          "failure_url": "https://cko.jeff94040.com/failure",
+          "payment_method_configuration": {
+            "card": {
+              "store_payment_details": "collect_consent"
+            }
+          }
+        }
+        """.trimIndent()
+
+        // Log payload sent to server
+        Log.d("CheckoutFlow", "Sending Payload: $jsonPayload")
+
+        // Use a buffered writer to ensure the stream is flushed correctly
+        connection.outputStream.use { os ->
+            os.writer(Charsets.UTF_8).use { writer ->
+                writer.write(jsonPayload)
+                writer.flush()
+            }
+        }
+
+        // Read the response
+        val responseCode = connection.responseCode
+        return if (responseCode in 200..299) {
+            connection.inputStream.bufferedReader().use { it.readText() }
+        } else {
+            val error = connection.errorStream.bufferedReader().use { it.readText() }
+            throw Exception("HTTP $responseCode: $error")
         }
     }
 }
