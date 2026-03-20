@@ -70,32 +70,31 @@ class MainActivity : ComponentActivity() {
                     flowCoordinators = flowCoordinators,
                     componentCallback = ComponentCallback(
                         onReady = { component ->
-                            Log.d("CheckoutFlow", "Fired onReady! Component: $component")
+                            Log.d("CheckoutFlow", "Fired onReady!")
                         },
                         onChange = { component ->
-                            Log.d("CheckoutFlow", "Fired onChange! Component: $component")
+                           // Fires each time a key is pressed
+                           // Log.d("CheckoutFlow", "Fired onChange!")
                         },
                         onSubmit = { component ->
-                            Log.d("CheckoutFlow", "Fired onSubmit! Component: $component")
+                            Log.d("CheckoutFlow", "Fired onSubmit!")
                         },
                         onSuccess = { component, paymentId ->
-                            Log.d("CheckoutFlow", "Fired onSuccess! Component: $component, PaymentResult: $paymentId")
+                            Log.d("CheckoutFlow", "Fired onSuccess! PaymentResult: $paymentId")
                         },
                         onError = { component, error ->
-                            Log.e("CheckoutFlow", "Fired onError! Component: $component, Error: $error")
+                            Log.e("CheckoutFlow", "Fired onError! Error: $error")
                         },
                         onTokenized = { tokenizationResult ->
                             Log.d("CheckoutFlow", "Fired onTokenized! Result: $tokenizationResult")
-                            // Use Accepted instead of Proceed in v1.6.0
                             CallbackResult.Accepted
                         },
                         onCardBinChanged = { cardMetadata ->
                             Log.d("CheckoutFlow", "Fired onCardBinChanged! Metadata: $cardMetadata")
-                            // Use Accepted instead of Proceed in v1.6.0
                             CallbackResult.Accepted
                         },
                         handleTap = { component ->
-                            Log.d("CheckoutFlow", "Fired handleTap! Component: $component")
+                            Log.d("CheckoutFlow", "Fired handleTap!")
                             true // This remains a simple Boolean
                         }
                         /*,
