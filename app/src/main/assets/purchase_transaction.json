@@ -1,0 +1,30 @@
+{
+  "amount": 100,
+  "currency": "USD",
+  "reference": "FLOW-ANDROID-PURCHASE-123456",
+  "payment_type": "Regular",
+  "display_name": "Jeff US",
+  "items": [
+    {
+      "name": "widget",
+      "unit_price": 100,
+      "quantity": 1
+    }
+  ],
+  "billing": {
+    "address": {
+      "country": "US"
+    }
+  },
+  "customer": {
+    "name": "John Doe",
+    "email": "johndoe@yahoo.com"
+  },
+  "success_url": "https://cko.jeff94040.com/success",
+  "failure_url": "https://cko.jeff94040.com/failure",
+  "payment_method_configuration": {
+    "card": {
+      "store_payment_details": "collect_consent"
+    }
+  }
+}

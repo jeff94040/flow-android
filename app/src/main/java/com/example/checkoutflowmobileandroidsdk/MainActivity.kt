@@ -2,6 +2,7 @@ package com.example.checkoutflowmobileandroidsdk
 
 import android.os.Bundle
 import android.util.Log
+
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
@@ -9,22 +10,28 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.lifecycleScope
+
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+
 import com.checkout.components.core.CheckoutComponentsFactory
 import com.checkout.components.interfaces.component.CheckoutComponentConfiguration
-import kotlinx.coroutines.launch
-import com.checkout.components.interfaces.Environment
 import com.checkout.components.interfaces.component.ComponentCallback
+import com.checkout.components.interfaces.component.AddressConfiguration
+import com.checkout.components.interfaces.component.ComponentOption
+import com.checkout.components.interfaces.Environment
+import com.checkout.components.interfaces.model.AddressField
+import com.checkout.components.interfaces.model.CallbackResult
 import com.checkout.components.interfaces.model.ComponentName
 import com.checkout.components.interfaces.model.PaymentSessionResponse
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import org.json.JSONObject
-import java.net.HttpURLConnection
-import java.net.URL
 import com.checkout.components.interfaces.model.PaymentMethodName
 import com.checkout.components.wallet.wrapper.GooglePayFlowCoordinator
-import com.checkout.components.interfaces.model.CallbackResult
-import com.checkout.components.interfaces.model.ApiCallResult
+
+import org.json.JSONObject
+
+import java.net.HttpURLConnection
+import java.net.URL
 
 class MainActivity : ComponentActivity() {
 
@@ -47,7 +54,9 @@ class MainActivity : ComponentActivity() {
                 // Parse the JSON response
                 val jsonResponse = JSONObject(responseString)
                 val fetchedId = jsonResponse.getString("id")
+                //val fetchedId = "ps_3CGZWYplTEwhl9ywt4xbLJ7BrmD"
                 val fetchedSecret = jsonResponse.getString("payment_session_secret")
+                //val fetchedSecret = "pss_235ea93e-0fbe-4e90-8568-17119691ca9d"
 
                 // Setup Google Pay Coordinator
                 val googlePayCoordinator = GooglePayFlowCoordinator(
@@ -58,6 +67,12 @@ class MainActivity : ComponentActivity() {
                 )
                 val flowCoordinators = mapOf(PaymentMethodName.GooglePay to googlePayCoordinator)
 
+                /*
+                val cardOptions = ComponentOption(
+                    addressConfiguration = addressConfig,
+                )
+                */
+
                 // Configure the Checkout SDK
                 val configuration = CheckoutComponentConfiguration(
                     context = this@MainActivity,
@@ -67,6 +82,7 @@ class MainActivity : ComponentActivity() {
                         id = fetchedId,
                         secret = fetchedSecret
                     ),
+                    //componentOptions = mapOf(PaymentMethodName.Card to cardOptions),
                     flowCoordinators = flowCoordinators,
                     componentCallback = ComponentCallback(
                         onReady = { component ->
@@ -144,41 +160,13 @@ class MainActivity : ComponentActivity() {
         connection.setRequestProperty("Content-Type", "application/json")
         connection.setRequestProperty("Accept", "application/json")
         connection.setRequestProperty("Processing-Channel-Id", BuildConfig.CHECKOUT_PROCESSING_CHANNEL_ID)
-        connection.setRequestProperty("Authorization", "sk_sbox_***************************") // placeholder
+        connection.setRequestProperty("Authorization", BuildConfig.CHECKOUT_SECRET_KEY) // placeholder
         connection.doOutput = true
 
-        val jsonPayload = """
-        {
-          "amount": 100,
-          "currency": "USD",
-          "reference": "FLOW-ANDROID-123456",
-          "payment_type": "Regular",
-          "display_name": "Jeff US",
-          "items": [
-            {
-              "name": "widget",
-              "unit_price": 100,
-              "quantity": 1
-            }
-          ],
-          "billing": {
-            "address": {
-              "country": "US"
-            }
-          },
-          "customer": {
-            "name": "John Doe",
-            "email": "johndoe@yahoo.com"
-          },
-          "success_url": "https://cko.jeff94040.com/success",
-          "failure_url": "https://cko.jeff94040.com/failure",
-          "payment_method_configuration": {
-            "card": {
-              "store_payment_details": "collect_consent"
-            }
-          }
-        }
-        """.trimIndent()
+        val filename = "aft_transaction.json"
+        //val filename = "purchase_transaction.json"
+
+        val jsonPayload = assets.open(filename).bufferedReader().use { it.readText() }
 
         // Log payload sent to server
         Log.d("CheckoutFlow", "Sending Payload: $jsonPayload")
@@ -200,4 +188,23 @@ class MainActivity : ComponentActivity() {
             throw Exception("HTTP $responseCode: $error")
         }
     }
+
+    /*
+    // 1. Create the Address Configuration - Needs further experimentation
+    val addressConfig = AddressConfiguration(
+        fields = listOf(
+            AddressField.Country,
+            AddressField.AddressLine1(isOptional = false),
+            AddressField.AddressLine2(isOptional = true),
+            AddressField.City(isOptional = false),
+            AddressField.State(isOptional = false),
+            AddressField.Zip(isOptional = false)
+        ),
+        // Callback fired when the user finishes entering the address
+        onComplete = { contactData ->
+            Log.d("CheckoutFlow", "Address Collected: ${contactData?.address}")
+        }
+    )
+    */
+
 }

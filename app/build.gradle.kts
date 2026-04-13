@@ -32,13 +32,18 @@ android {
         buildConfigField(
             "String",
             "CHECKOUT_PUBLIC_KEY",
-            "\"${properties.getProperty("CHECKOUT_PUBLIC_KEY", "missing_key")}\""
+            "\"${properties.getProperty("CHECKOUT_PUBLIC_KEY", "missing_public_key")}\""
         )
         // 3. Processing Channel ID
         buildConfigField(
             "String",
             "CHECKOUT_PROCESSING_CHANNEL_ID",
             "\"${properties.getProperty("CHECKOUT_PROCESSING_CHANNEL_ID", "missing_channel_id")}\""
+        )
+        buildConfigField(
+            "String",
+            "CHECKOUT_SECRET_KEY",
+            "\"${properties.getProperty("CHECKOUT_SECRET_KEY", "missing_secret_key")}\""
         )
     }
 
