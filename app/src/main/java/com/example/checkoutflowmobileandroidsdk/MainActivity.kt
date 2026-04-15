@@ -153,28 +153,35 @@ class MainActivity : ComponentActivity() {
     // Function to make the HTTP POST request to your backend
     private fun fetchPaymentSession(): String {
 
-        val url = URL("https://cko.jeff94040.com/create-payment-session")
+        // This API call should be made from the backend, not the app. Illustrative only.
+        val url = URL("https://api.sandbox.checkout.com/payment-sessions")
         val connection = url.openConnection() as HttpURLConnection
 
         connection.requestMethod = "POST"
+
         connection.setRequestProperty("Content-Type", "application/json")
         connection.setRequestProperty("Accept", "application/json")
-        connection.setRequestProperty("Processing-Channel-Id", BuildConfig.CHECKOUT_PROCESSING_CHANNEL_ID)
         connection.setRequestProperty("Authorization", BuildConfig.CHECKOUT_SECRET_KEY) // placeholder
         connection.doOutput = true
 
-        val filename = "aft_transaction.json"
-        //val filename = "purchase_transaction.json"
+        //val filename = "aft_transaction.json"
+        val filename = "purchase_transaction.json"
 
-        val jsonPayload = assets.open(filename).bufferedReader().use { it.readText() }
+        val fileText = assets.open(filename).bufferedReader().use { it.readText() }
+
+        val jsonObject = org.json.JSONObject(fileText)
+
+        jsonObject.put("processing_channel_id", BuildConfig.CHECKOUT_PROCESSING_CHANNEL_ID)
+
+        val finalJsonPayload = jsonObject.toString()
 
         // Log payload sent to server
-        Log.d("CheckoutFlow", "Sending Payload: $jsonPayload")
+        Log.d("CheckoutFlow", "Sending Payload: $finalJsonPayload")
 
         // Use a buffered writer to ensure the stream is flushed correctly
         connection.outputStream.use { os ->
             os.writer(Charsets.UTF_8).use { writer ->
-                writer.write(jsonPayload)
+                writer.write(finalJsonPayload)
                 writer.flush()
             }
         }
