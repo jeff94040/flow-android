@@ -44,19 +44,18 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch {
             try {
 
-                // Fetch the session from your server
+                // Create payment session
                 val responseString = withContext(Dispatchers.IO) {
                     fetchPaymentSession()
                 }
 
+                // Log create payment session response
                 Log.d("CheckoutFlow", "Server Response: $responseString")
 
                 // Parse the JSON response
                 val jsonResponse = JSONObject(responseString)
                 val fetchedId = jsonResponse.getString("id")
-                //val fetchedId = "ps_3CGZWYplTEwhl9ywt4xbLJ7BrmD"
                 val fetchedSecret = jsonResponse.getString("payment_session_secret")
-                //val fetchedSecret = "pss_235ea93e-0fbe-4e90-8568-17119691ca9d"
 
                 // Setup Google Pay Coordinator
                 val googlePayCoordinator = GooglePayFlowCoordinator(
@@ -65,13 +64,30 @@ class MainActivity : ComponentActivity() {
                         checkoutResultHandler?.invoke(resultCode, data)
                     }
                 )
-                val flowCoordinators = mapOf(PaymentMethodName.GooglePay to googlePayCoordinator)
 
-                /*
-                val cardOptions = ComponentOption(
-                    addressConfiguration = addressConfig,
+                // Setup Component Options
+                val componentOptions = ComponentOption(
+                    // Collect Billing Address
+                    addressConfiguration = AddressConfiguration(
+                        // Optional - specify the fields to collect along with optionality
+                        fields = listOf(
+                            AddressField.FirstName(),
+                            AddressField.LastName(),
+                            AddressField.Country,
+                            AddressField.State(),
+                            AddressField.Zip(isOptional = false),
+                            AddressField.City(),
+                            AddressField.AddressLine1(),
+                            AddressField.AddressLine1(),
+                            AddressField.Email(isOptional = false),
+                            AddressField.Phone()
+                        ),
+                        // Required
+                        onComplete = { contactData ->
+                            Log.d("CheckoutFlow", "Fired onComplete! ContactData: $contactData")
+                        }
+                    )
                 )
-                */
 
                 // Configure the Checkout SDK
                 val configuration = CheckoutComponentConfiguration(
@@ -82,8 +98,7 @@ class MainActivity : ComponentActivity() {
                         id = fetchedId,
                         secret = fetchedSecret
                     ),
-                    //componentOptions = mapOf(PaymentMethodName.Card to cardOptions),
-                    flowCoordinators = flowCoordinators,
+                    flowCoordinators = mapOf(PaymentMethodName.GooglePay to googlePayCoordinator),
                     componentCallback = ComponentCallback(
                         onReady = { component ->
                             Log.d("CheckoutFlow", "Fired onReady!")
@@ -113,13 +128,6 @@ class MainActivity : ComponentActivity() {
                             Log.d("CheckoutFlow", "Fired handleTap!")
                             true // This remains a simple Boolean
                         }
-                        /*,
-                        handleSubmit = { sessionData ->
-                            Log.d("CheckoutFlow", "Fired handleSubmit! SessionData: $sessionData")
-                            // Use Success here to indicate a successful handover
-                            ApiCallResult.Success
-                        }
-                        */
                     )
                 )
 
@@ -132,7 +140,7 @@ class MainActivity : ComponentActivity() {
                 }
 
                 // Create the "Flow" component which manages all payment methods
-                val flow = checkoutComponents.create(ComponentName.Flow)
+                val flow = checkoutComponents.create(ComponentName.Flow, componentOptions)
 
                 setContent {
                     MaterialTheme {
@@ -140,7 +148,6 @@ class MainActivity : ComponentActivity() {
                             modifier = Modifier.fillMaxSize(),
                             color = MaterialTheme.colorScheme.background
                         ) {
-                            // Render the UI directly in Compose
                             flow.Render()
                         }
                     }
@@ -150,10 +157,11 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-    // Function to make the HTTP POST request to your backend
+
+    // Function to create Payment Session
     private fun fetchPaymentSession(): String {
 
-        // This API call should be made from the backend, not the app. Illustrative only.
+        // Make this API call from the backend only. Illustrative only.
         val url = URL("https://api.sandbox.checkout.com/payment-sessions")
         val connection = url.openConnection() as HttpURLConnection
 
@@ -171,14 +179,14 @@ class MainActivity : ComponentActivity() {
 
         val jsonObject = org.json.JSONObject(fileText)
 
+        // Insert Processing Channel ID into JSON request body
         jsonObject.put("processing_channel_id", BuildConfig.CHECKOUT_PROCESSING_CHANNEL_ID)
 
         val finalJsonPayload = jsonObject.toString()
 
-        // Log payload sent to server
+        // Log create Payment Session payload sent to server
         Log.d("CheckoutFlow", "Sending Payload: $finalJsonPayload")
 
-        // Use a buffered writer to ensure the stream is flushed correctly
         connection.outputStream.use { os ->
             os.writer(Charsets.UTF_8).use { writer ->
                 writer.write(finalJsonPayload)
@@ -186,7 +194,7 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        // Read the response
+        // Read the server's response
         val responseCode = connection.responseCode
         return if (responseCode in 200..299) {
             connection.inputStream.bufferedReader().use { it.readText() }
@@ -195,23 +203,5 @@ class MainActivity : ComponentActivity() {
             throw Exception("HTTP $responseCode: $error")
         }
     }
-
-    /*
-    // 1. Create the Address Configuration - Needs further experimentation
-    val addressConfig = AddressConfiguration(
-        fields = listOf(
-            AddressField.Country,
-            AddressField.AddressLine1(isOptional = false),
-            AddressField.AddressLine2(isOptional = true),
-            AddressField.City(isOptional = false),
-            AddressField.State(isOptional = false),
-            AddressField.Zip(isOptional = false)
-        ),
-        // Callback fired when the user finishes entering the address
-        onComplete = { contactData ->
-            Log.d("CheckoutFlow", "Address Collected: ${contactData?.address}")
-        }
-    )
-    */
 
 }
