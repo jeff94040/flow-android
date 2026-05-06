@@ -17,8 +17,7 @@
     }
   },
   "customer": {
-    "name": "John Doe",
-    "email": "johndoe@yahoo.com"
+    "email": "test@test.com"
   },
   "success_url": "https://cko.jeff94040.com/success",
   "failure_url": "https://cko.jeff94040.com/failure",

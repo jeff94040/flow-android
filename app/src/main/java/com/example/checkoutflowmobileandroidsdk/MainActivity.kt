@@ -21,12 +21,15 @@ import com.checkout.components.interfaces.component.ComponentCallback
 import com.checkout.components.interfaces.component.AddressConfiguration
 import com.checkout.components.interfaces.component.ComponentOption
 import com.checkout.components.interfaces.Environment
+import com.checkout.components.interfaces.component.RememberMeConfiguration
 import com.checkout.components.interfaces.model.AddressField
 import com.checkout.components.interfaces.model.CallbackResult
 import com.checkout.components.interfaces.model.ComponentName
 import com.checkout.components.interfaces.model.PaymentSessionResponse
 import com.checkout.components.interfaces.model.PaymentMethodName
+import com.checkout.components.interfaces.component.RememberMeConfiguration.Data
 import com.checkout.components.wallet.wrapper.GooglePayFlowCoordinator
+import com.checkout.components.interfaces.model.Phone
 
 import org.json.JSONObject
 
@@ -67,6 +70,16 @@ class MainActivity : ComponentActivity() {
 
                 // Setup Component Options
                 val componentOptions = ComponentOption(
+                    /*
+                    // Remember Me
+                    rememberMeConfiguration = RememberMeConfiguration(
+                        data = RememberMeConfiguration.Data(
+                            //email = "Cali46@yahoo.com",
+                            //phone = Phone(countryCode = "1", number = "9837195594")
+                        )
+                    )
+                    */
+                    /*
                     // Collect Billing Address
                     addressConfiguration = AddressConfiguration(
                         // Optional - specify the fields to collect along with optionality
@@ -86,7 +99,7 @@ class MainActivity : ComponentActivity() {
                         onComplete = { contactData ->
                             Log.d("CheckoutFlow", "Fired onComplete! ContactData: $contactData")
                         }
-                    )
+                    )*/
                 )
 
                 // Configure the Checkout SDK
@@ -177,7 +190,7 @@ class MainActivity : ComponentActivity() {
 
         val fileText = assets.open(filename).bufferedReader().use { it.readText() }
 
-        val jsonObject = org.json.JSONObject(fileText)
+        val jsonObject = JSONObject(fileText)
 
         // Insert Processing Channel ID into JSON request body
         jsonObject.put("processing_channel_id", BuildConfig.CHECKOUT_PROCESSING_CHANNEL_ID)

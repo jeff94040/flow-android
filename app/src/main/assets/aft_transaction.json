@@ -4,6 +4,9 @@
   "reference": "FLOW-ANDROID-AFT-123456",
   "payment_type": "Regular",
   "display_name": "Jeff US",
+  "3ds": {
+    "enabled": true
+  },
   "processing": {
     "aft": true
   },
@@ -45,8 +48,7 @@
     }
   },
   "customer": {
-    "name": "John Doe",
-    "email": "johndoe@yahoo.com"
+    "email": "test@test.com"
   },
   "success_url": "https://cko.jeff94040.com/success",
   "failure_url": "https://cko.jeff94040.com/failure",
